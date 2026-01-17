@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ecommerce_password
+      POSTGRES_DB: ecommerce_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - ecommerce-network
+    restart: always
+
+  backend:
+    build:
+      context: ./ecommerce-backend
+      dockerfile: Dockerfile
+    container_name: ecommerce-backend
+    environment:
+      - DATABASE_DSN=postgres://ecommerce:ecommerce_password@postgres:5432/ecommerce_db?sslmode=disable
+      - JWT_SECRET=your_jwt_secret_key_change_me
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - ecommerce-network
+    restart: always
+
+  web:
+    build:
+      context: ./ecommerce-web
+      dockerfile: Dockerfile
+    container_name: ecommerce-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - ecommerce-network
+    restart: always
+
+volumes:
+  pgdata:
+
+networks:
+  ecommerce-network:
+    driver: bridge
